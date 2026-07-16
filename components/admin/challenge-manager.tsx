@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { Plus, Pencil, Trash2, EyeOff } from 'lucide-react'
+import { useState, useTransition, useRef } from 'react'
+import { Plus, Pencil, Trash2, EyeOff, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { createChallenge, deleteChallenge, updateChallenge } from '@/app/actions/admin'
+// Importez l'action que nous venons de créer à l'étape 1 (ajustez le chemin si nécessaire)
+import { importChallengesAction } from '@/app/actions/admin' 
 import type { Challenge } from '@/lib/db'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,48 +20,118 @@ import {
 } from '@/components/ui/dialog'
 
 export function ChallengeManager({ challenges }: { challenges: Challenge[] }) {
+  const [isImporting, startImport] = useTransition()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Fonction pour lire et parser le fichier CSV sélectionné par l'admin
+  function handleCSVImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const text = event.target?.result as string
+      if (!text) return
+
+      startImport(async () => {
+        try {
+          const lines = text.split('\n')
+          const header = lines.shift() // Retirer l'en-tête (title,description,points)
+          const parsedChallenges: { title: string; description: string; points: number }[] = []
+
+          for (const line of lines) {
+            if (!line.trim()) continue
+
+            // Regex robuste pour séparer par virgule tout en ignorant les virgules dans les guillemets ""
+            const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)
+            if (!matches || matches.length < 3) continue
+
+            const title = matches[0].replace(/^"|"$/g, '').trim()
+            const description = matches[1].replace(/^"|"$/g, '').trim()
+            const points = parseInt(matches[2].replace(/^"|"$/g, '').trim(), 10)
+
+            if (title && !isNaN(points)) {
+              parsedChallenges.push({ title, description, points })
+            }
+          }
+
+          if (parsedChallenges.length === 0) {
+            toast.error("Aucun défi valide trouvé dans le CSV. Vérifiez le format.")
+            return
+          }
+
+          // Appel de l'action pour insérer en Base de Données
+          const res = await importChallengesAction(parsedChallenges)
+          if (res?.error) {
+            toast.error(res.error)
+          } else {
+            toast.success(`${res.count} défis importés avec succès !`)
+          }
+        } catch (err) {
+          toast.error("Erreur lors de la lecture du fichier CSV.")
+        }
+      })
+    }
+    reader.readAsText(file, 'utf-8')
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <p className="text-sm text-muted-foreground">
-          {challenges.length} challenge{challenges.length === 1 ? '' : 's'}
+          {challenges.length} défi{challenges.length === 1 ? '' : 's'}
         </p>
-        <ChallengeDialog
-          trigger={
-            <Button size="sm">
-              <Plus className="size-4" />
-              New challenge
-            </Button>
-          }
-        />
+        
+        <div className="flex items-center gap-2">
+          {/* Input masqué pour charger le CSV */}
+          <input
+            type="file"
+            accept=".csv"
+            ref={fileInputRef}
+            onChange={handleCSVImport}
+            className="hidden"
+          />
+          <Button 
+            size="sm" 
+            variant="outline" 
+            disabled={isImporting}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="mr-1.5 size-4" />
+            {isImporting ? 'Importation...' : 'Importer un CSV'}
+          </Button>
+
+          <ChallengeDialog
+            trigger={
+              <Button size="sm">
+                <Plus className="size-4" />
+                Nouveau défi
+              </Button>
+            }
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {challenges.map((c) => (
           <div key={c.id} className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="font-display font-bold leading-tight text-balance">{c.title}</h3>
-              <span className="shrink-0 rounded-full bg-primary px-2.5 py-1 font-display text-xs font-bold text-primary-foreground">
-                {c.points} pts
-              </span>
-            </div>
-            {c.description && (
-              <p className="text-sm text-muted-foreground">{c.description}</p>
-            )}
-            <div className="mt-auto flex items-center justify-between pt-2">
-              {!c.active && (
-                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <EyeOff className="size-3.5" />
-                  Hidden
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="font-display text-base font-bold flex items-center gap-1.5">
+                  {!c.active && <EyeOff className="size-4 text-muted-foreground shrink-0" />}
+                  <span className="truncate">{c.title}</span>
+                </h3>
+                <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{c.description}</p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold">
+                  {c.points} pts
                 </span>
-              )}
-              <div className="ml-auto flex gap-2">
                 <ChallengeDialog
                   challenge={c}
                   trigger={
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="ghost">
                       <Pencil className="size-4" />
-                      Edit
                     </Button>
                   }
                 />
@@ -68,16 +140,12 @@ export function ChallengeManager({ challenges }: { challenges: Challenge[] }) {
             </div>
           </div>
         ))}
-        {challenges.length === 0 && (
-          <div className="col-span-full rounded-xl border border-dashed border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground">
-            No challenges yet. Create your first one.
-          </div>
-        )}
       </div>
     </div>
   )
 }
 
+// --- Les sous-composants ChallengeDialog et DeleteChallengeButton restent identiques ---
 function ChallengeDialog({
   challenge,
   trigger,
@@ -87,34 +155,48 @@ function ChallengeDialog({
 }) {
   const editing = !!challenge
   const [open, setOpen] = useState(false)
-  const [title, setTitle] = useState(challenge?.title ?? '')
-  const [description, setDescription] = useState(challenge?.description ?? '')
-  const [points, setPoints] = useState(String(challenge?.points ?? 100))
-  const [active, setActive] = useState(challenge?.active ?? true)
+  const [title, setTitle] = useState(challenge?.title || '')
+  const [description, setDescription] = useState(challenge?.description || '')
+  const [points, setPoints] = useState(challenge?.points?.toString() || '10')
+  const [active, setActive] = useState(editing ? challenge.active : true)
   const [isPending, startTransition] = useTransition()
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     startTransition(async () => {
-      const res = editing
-        ? await updateChallenge({
-            id: challenge.id,
-            title,
-            description,
-            points: Number(points),
-            active,
-          })
-        : await createChallenge({ title, description, points: Number(points) })
+      const pts = parseInt(points, 10)
+      if (isNaN(pts)) {
+        toast.error('Points must be a number.')
+        return
+      }
+
+      let res
+      if (editing && challenge) {
+        res = await updateChallenge(challenge.id, {
+          title: title.trim(),
+          description: description.trim(),
+          points: pts,
+          active,
+        })
+      } else {
+        res = await createChallenge({
+          title: title.trim(),
+          description: description.trim(),
+          points: pts,
+        })
+      }
+
       if (res?.error) {
         toast.error(res.error)
         return
       }
+
       toast.success(editing ? 'Challenge updated.' : 'Challenge created.')
       setOpen(false)
       if (!editing) {
         setTitle('')
         setDescription('')
-        setPoints('100')
+        setPoints('10')
       }
     })
   }
@@ -122,16 +204,19 @@ function ChallengeDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="font-display text-xl">
-            {editing ? 'Edit challenge' : 'New challenge'}
-          </DialogTitle>
+          <DialogTitle>{editing ? 'Edit challenge' : 'New challenge'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="c-title">Title</Label>
-            <Input id="c-title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+            <Input
+              id="c-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="c-desc">Description</Label>
@@ -139,8 +224,7 @@ function ChallengeDialog({
               id="c-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              placeholder="What do they have to do to complete it?"
+              required
             />
           </div>
           <div className="flex flex-col gap-2">
