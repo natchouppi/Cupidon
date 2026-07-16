@@ -1,19 +1,26 @@
+// 1. On importe la géolocalisation depuis les actions
 import { getTeamsLastLocation } from '@/app/actions/admin'
+// 2. LA CORRECTION EST ICI : on importe les données depuis la base de données (db.ts)
+import { getAllChallenges, getPendingSubmissions } from '@/lib/db'
+
 import { AdminDashboard } from '@/components/admin/admin-dashboard'
 
 export default async function AdminPage() {
   let teams = []
-  // On crée des tableaux vides pour éviter que le tableau de bord ne plante
-  const challenges: any[] = [] 
-  const pending: any[] = [] 
+  let challenges = []
+  let pending = []
 
   try {
-    // On ne lance QUE la requête qui existe vraiment dans admin.ts
+    // On lance les vraies fonctions qui existent dans vos fichiers
     const results = await Promise.all([
-      getTeamsLastLocation()
+      getTeamsLastLocation(),
+      getAllChallenges(),     // Vient de lib/db.ts
+      getPendingSubmissions() // Vient de lib/db.ts
     ])
     
     teams = results[0] || []
+    challenges = results[1] || []
+    pending = results[2] || []
     
   } catch (error) {
     console.error("Erreur lors de la récupération des données admin:", error)
