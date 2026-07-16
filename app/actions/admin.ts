@@ -47,6 +47,7 @@ export async function createChallenge(input: {
   return { success: true }
 }
 
+// RETOUR À LA SIGNATURE D'ORIGINE (Un seul objet "input")
 export async function updateChallenge(input: {
   id: number
   title: string
@@ -78,6 +79,49 @@ export async function deleteChallenge(id: number) {
   revalidatePath('/admin')
   revalidatePath('/')
   return { success: true }
+}
+
+// ---- Importation JSON ----
+
+export async function importChallengesAction(
+  challenges: { title: string; description: string; points: number }[]
+) {
+  try {
+    await requireAdmin()
+    
+    for (const c of challenges) {
+      await sql`
+        INSERT INTO challenges (title, description, points, active)
+        VALUES (${c.title}, ${c.description || null}, ${c.points}, true);
+      `
+    }
+    
+    revalidatePath('/admin')
+    revalidatePath('/')
+    return { success: true, count: challenges.length }
+  } catch (error: any) {
+    return { error: error.message || "Erreur lors de l'importation." }
+  }
+}
+
+// ---- Reset Général du Jeu ----
+
+export async function resetDatabaseAction() {
+  try {
+    await requireAdmin()
+
+    // 1. Supprime toutes les validations et preuves envoyées par les équipes
+    await sql`TRUNCATE TABLE submissions CASCADE;`
+    
+    // 2. Remet tous les scores des équipes à 0
+    await sql`UPDATE teams SET points = 0;`
+    
+    revalidatePath('/admin')
+    revalidatePath('/')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message || "Erreur lors de la réinitialisation." }
+  }
 }
 
 // ---- Teams ----
@@ -130,36 +174,4 @@ export async function deleteTeam(id: number) {
   revalidatePath('/admin')
   revalidatePath('/')
   return { success: true }
-}
-
-// À ajouter à la fin de votre fichier d'actions d'administration (ex: app/actions/admin.ts)
-export async function importChallengesAction(challenges: { title: string; description: string; points: number }[]) {
-  try {
-    for (const c of challenges) {
-      await sql`
-        INSERT INTO challenges (title, description, points, active)
-        VALUES (${c.title}, ${c.description}, ${c.points}, true);
-      `
-    }
-    revalidatePath('/admin')
-    return { success: true, count: challenges.length }
-  } catch (error: any) {
-    return { error: error.message || "Erreur lors de l'importation." }
-  }
-}
-
-export async function resetDatabaseAction() {
-  try {
-    // 1. Supprime toutes les soumissions/preuves de défis faites par les équipes
-    await sql`TRUNCATE TABLE submissions CASCADE;`
-    
-    // 2. Remet les points de toutes les équipes à 0
-    // (Ajustez le nom de la table ou de la colonne si nécessaire, ex: 'teams' et 'points')
-    await sql`UPDATE teams SET points = 0;`
-    
-    revalidatePath('/admin')
-    return { success: true }
-  } catch (error: any) {
-    return { error: error.message || "Erreur lors de la réinitialisation." }
-  }
 }
