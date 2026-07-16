@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
 
-// 1. Import dynamique obligatoire pour Next.js (évite l'erreur SSR)
+// On définit le chargement dynamique hors du composant
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
   { ssr: false, loading: () => <div className="h-[400px] w-full bg-gray-100 animate-pulse" /> }
@@ -23,46 +21,30 @@ const Popup = dynamic(
   { ssr: false }
 )
 
-// 2. Correction pour les icônes Leaflet qui disparaissent souvent par défaut
-const iconUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png"
-const shadowUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png"
-
-const DefaultIcon = L.icon({
-  iconUrl,
-  shadowUrl,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-})
-
-L.Marker.prototype.options.icon = DefaultIcon
-
 export default function TeamsMap({ teams }: { teams: any[] }) {
-  const [isMounted, setIsMounted] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
+  // 1. On attend que le composant soit "monté" côté client
   useEffect(() => {
-    setIsMounted(true)
+    setMounted(true)
   }, [])
 
-  if (!isMounted) return null
+  // 2. Tant que ce n'est pas monté, on ne retourne rien (ou un placeholder)
+  if (!mounted) {
+    return <div className="h-[400px] w-full bg-gray-50 flex items-center justify-center">Chargement de la carte...</div>
+  }
 
+  // 3. Une fois monté, on affiche la carte
   return (
-    <div className="h-[400px] w-full rounded-lg overflow-hidden border">
-      <MapContainer 
-        center={[48.8566, 2.3522] as [number, number]} 
-        zoom={6} 
-        style={{ height: '100%', width: '100%' }}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        
+    <div className="h-[400px] w-full">
+      <MapContainer center={[48.8566, 2.3522] as [number, number]} zoom={6} style={{ height: '100%', width: '100%' }}>
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         {teams.map((team) => (
-          <Marker key={team.id} position={[team.lat, team.lng] as [number, number]}>
-            <Popup>
-              <div className="font-semibold">{team.name}</div>
-            </Popup>
-          </Marker>
+          team.latitude && team.longitude ? (
+            <Marker key={team.team_id} position={[team.latitude, team.longitude] as [number, number]}>
+              <Popup>{team.team_name}</Popup>
+            </Marker>
+          ) : null
         ))}
       </MapContainer>
     </div>
