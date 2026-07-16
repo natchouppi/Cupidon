@@ -3,7 +3,7 @@
 import { useState, useTransition, useRef } from 'react'
 import { Plus, Pencil, Trash2, EyeOff, Upload } from 'lucide-react'
 import { toast } from 'sonner'
-import { createChallenge, deleteChallenge, updateChallenge } from '@/app/actions/admin'
+import { createChallenge, deleteChallenge, updateChallenge, resetDatabaseAction } from '@/app/actions/admin'
 import { importChallengesAction } from '@/app/actions/admin' 
 import type { Challenge } from '@/lib/db'
 import { Button } from '@/components/ui/button'
