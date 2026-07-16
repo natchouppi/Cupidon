@@ -131,3 +131,20 @@ export async function deleteTeam(id: number) {
   revalidatePath('/')
   return { success: true }
 }
+
+// À ajouter à la fin de votre fichier d'actions d'administration (ex: app/actions/admin.ts)
+export async function importChallengesAction(challenges: { title: string; description: string; points: number }[]) {
+  try {
+    for (const c of challenges) {
+      await sql`
+        INSERT INTO challenges (title, description, points, active)
+        VALUES (${c.title}, ${c.description}, ${c.points}, true)
+        ON CONFLICT (title) DO NOTHING;
+      `
+    }
+    revalidatePath('/admin') // Force la mise à jour visuelle de la page admin
+    return { success: true, count: challenges.length }
+  } catch (error: any) {
+    return { error: error.message || "Erreur lors de l'importation." }
+  }
+}
