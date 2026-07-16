@@ -138,11 +138,10 @@ export async function importChallengesAction(challenges: { title: string; descri
     for (const c of challenges) {
       await sql`
         INSERT INTO challenges (title, description, points, active)
-        VALUES (${c.title}, ${c.description}, ${c.points}, true)
-        ON CONFLICT (title) DO NOTHING;
+        VALUES (${c.title}, ${c.description}, ${c.points}, true);
       `
     }
-    revalidatePath('/admin') // Force la mise à jour visuelle de la page admin
+    revalidatePath('/admin')
     return { success: true, count: challenges.length }
   } catch (error: any) {
     return { error: error.message || "Erreur lors de l'importation." }
