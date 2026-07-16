@@ -180,24 +180,23 @@ export async function getTeamsLastLocation() {
   try {
     await requireAdmin()
     
-    // Cette requête récupère chaque équipe avec sa soumission GPS la plus récente
+    // Utilisez LEFT JOIN pour ne pas perdre les équipes sans soumissions
     const locations = await sql`
-      SELECT DISTINCT ON (t.id) 
+      SELECT 
         t.id as team_id,
         t.name as team_name,
-        t.code as team_code,
         s.latitude,
         s.longitude,
-        s.created_at as last_seen,
         c.title as challenge_title
       FROM teams t
-      JOIN submissions s ON s.team_id = t.id
-      JOIN challenges c ON s.challenge_id = c.id
-      WHERE s.latitude IS NOT NULL AND s.longitude IS NOT NULL
-      ORDER BY t.id, s.created_at DESC;
+      LEFT JOIN submissions s ON s.team_id = t.id
+      LEFT JOIN challenges c ON s.challenge_id = c.id
+      WHERE s.latitude IS NOT NULL 
+      ORDER BY s.created_at DESC
     `
-    return { success: true, data: locations }
-  } catch (error: any) {
-    return { error: error.message || "Erreur de récupération des positions." }
+    return locations
+  } catch (error) {
+    console.error("Erreur dans getTeamsLastLocation:", error)
+    return [] // Retourne un tableau vide au lieu de planter la page
   }
 }
