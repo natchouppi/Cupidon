@@ -2,23 +2,38 @@ import {
   getTeamsLastLocation, 
   getChallenges, 
   getPendingSubmissions 
-} from '@/app/actions/admin' // <-- ASSUREZ-VOUS QUE CES 3 FONCTIONS SONT DANS CE FICHIER
+} from '@/app/actions/admin'
 import { AdminDashboard } from '@/components/admin/admin-dashboard'
 
 export default async function AdminPage() {
-  // On récupère toutes les données nécessaires proprement
-  // Si l'une de ces fonctions manque dans le fichier importé, le build échoue.
-  const [teams, challenges, pending] = await Promise.all([
-    getTeamsLastLocation(),
-    getChallenges(), 
-    getPendingSubmissions()
-  ])
+  // On initialise des tableaux vides par défaut pour éviter tout crash
+  let teams = []
+  let challenges = []
+  let pending = []
+
+  try {
+    // On lance toutes les requêtes en même temps
+    const results = await Promise.all([
+      getTeamsLastLocation(),
+      getChallenges(),
+      getPendingSubmissions()
+    ])
+    
+    // On assigne les résultats (si une requête échoue silencieusement, on garde un tableau vide)
+    teams = results[0] || []
+    challenges = results[1] || []
+    pending = results[2] || []
+    
+  } catch (error) {
+    // En cas de problème grave avec la base de données, l'erreur est logguée mais la page charge quand même
+    console.error("Erreur lors de la récupération des données admin:", error)
+  }
 
   return (
     <AdminDashboard 
-      pending={pending || []} 
-      challenges={challenges || []} 
-      teams={teams || []} 
+      pending={pending} 
+      challenges={challenges} 
+      teams={teams} 
     />
   )
 }
