@@ -29,8 +29,8 @@ export function ProofMedia({
     return (
       <video
         controls
-        preload=\"metadata\"
-        className=\"aspect-video w-full rounded-lg border border-border bg-black object-contain\"
+        preload="metadata"
+        className="aspect-video w-full rounded-lg border border-border bg-black object-contain"
         src={src}
       />
     )
@@ -41,7 +41,7 @@ export function ProofMedia({
     <img
       src={src || '/placeholder.svg'}
       alt={`Proof for ${title}`}
-      className=\"max-h-80 w-full rounded-lg border border-border object-contain\"
+      className="max-h-80 w-full rounded-lg border border-border object-contain"
     />
   )
 }
