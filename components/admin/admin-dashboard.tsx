@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useTransition } from 'react'
-import { ArrowLeft, LogOut, Shield } from 'lucide-react'
+import { ArrowLeft, LogOut, Shield, MapPin } from 'lucide-react'
 import { toast } from 'sonner'
 import { logoutAdmin } from '@/app/actions/auth'
 import type { Challenge, PendingSubmission, Team } from '@/lib/db'
@@ -11,6 +11,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ReviewCard } from '@/components/admin/review-card'
 import { ChallengeManager } from '@/components/admin/challenge-manager'
 import { TeamManager } from '@/components/admin/team-manager'
+import dynamic from 'next/dynamic'
+
+// Chargement dynamique de la carte sans SSR (Server-Side Rendering) 
+// pour éviter que Leaflet ne fasse planter le serveur.
+const TeamsMap = dynamic(
+  () => import('@/components/admin/teams-map').then((mod) => mod.TeamsMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-xl border border-border bg-card p-12 text-center text-muted-foreground animate-pulse">
+        Chargement de la carte interactive...
+      </div>
+    ),
+  }
+)
 
 export function AdminDashboard({
   pending,
@@ -57,8 +72,9 @@ export function AdminDashboard({
 
       <main className="mx-auto w-full max-w-6xl px-4 py-8">
         <Tabs defaultValue="pending">
-          <TabsList>
-            <TabsTrigger value="pending">
+          {/* Liste des onglets : nous passons à 4 boutons */}
+          <TabsList className="grid grid-cols-4 w-full max-w-[480px]">
+            <TabsTrigger value="pending" className="flex items-center justify-center">
               Pending
               {pending.length > 0 && (
                 <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.5 text-xs font-bold text-primary-foreground">
@@ -68,6 +84,10 @@ export function AdminDashboard({
             </TabsTrigger>
             <TabsTrigger value="challenges">Challenges</TabsTrigger>
             <TabsTrigger value="teams">Teams</TabsTrigger>
+            <TabsTrigger value="map" className="flex items-center gap-1">
+              <MapPin className="size-3.5" />
+              <span>Carte</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="pending" className="mt-6">
@@ -93,6 +113,14 @@ export function AdminDashboard({
           <TabsContent value="teams" className="mt-6">
             <h2 className="mb-4 font-display text-2xl font-bold">Manage teams</h2>
             <TeamManager teams={teams} />
+          </TabsContent>
+
+          {/* Nouvel onglet : Carte en direct */}
+          <TabsContent value="map" className="mt-6">
+            <div className="flex flex-col gap-4">
+              <h2 className="font-display text-2xl font-bold">Géolocalisation</h2>
+              <TeamsMap />
+            </div>
           </TabsContent>
         </Tabs>
       </main>
