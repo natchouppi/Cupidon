@@ -74,17 +74,13 @@ export async function updateChallenge(input: {
 export async function deleteChallenge(id: number) {
   try {
     await requireAdmin()
-    
-    // On supprime d'abord les soumissions liées pour éviter les erreurs de clés étrangères
     await sql`DELETE FROM submissions WHERE challenge_id = ${id}`
     await sql`DELETE FROM challenges WHERE id = ${id}`
-    
     revalidatePath('/admin')
     revalidatePath('/')
     return { success: true }
   } catch (error: any) {
     console.error("Erreur fatale dans deleteChallenge:", error)
-    // Au lieu de faire crasher le site, on renvoie l'erreur proprement
     return { error: error.message || "Erreur lors de la suppression." }
   }
 }
@@ -92,4 +88,109 @@ export async function deleteChallenge(id: number) {
 // ---- Importation JSON ----
 
 export async function importChallengesAction(
-  challenges: {
+  challenges: { title: string; description: string; points: number }[]
+) {
+  try {
+    await requireAdmin()
+    for (const c of challenges) {
+      await sql`
+        INSERT INTO challenges (title, description, points, active)
+        VALUES (${c.title}, ${c.description || null}, ${c.points}, true);
+      `
+    }
+    revalidatePath('/admin')
+    revalidatePath('/')
+    return { success: true, count: challenges.length }
+  } catch (error: any) {
+    return { error: error.message || "Erreur lors de l'importation." }
+  }
+}
+
+// ---- Reset Général du Jeu ----
+
+export async function resetDatabaseAction() {
+  try {
+    await requireAdmin()
+    await sql`TRUNCATE TABLE submissions CASCADE;`
+    await sql`UPDATE teams SET points = 0;`
+    revalidatePath('/admin')
+    revalidatePath('/')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message || "Erreur lors de la réinitialisation." }
+  }
+}
+
+// ---- Teams ----
+
+function randomCode(name: string) {
+  const prefix = name.replace(/[^a-zA-Z]/g, '').slice(0, 4).toUpperCase() || 'TEAM'
+  const suffix = Math.floor(1000 + Math.random() * 9000)
+  return `${prefix}-${suffix}`
+}
+
+export async function createTeam(input: { name: string; code?: string }) {
+  await requireAdmin()
+  const name = input.name.trim()
+  if (!name) return { error: 'Team name is required.' }
+  let code = (input.code ?? '').trim().toUpperCase()
+  if (!code) code = randomCode(name)
+
+  const existing = (await sql`SELECT id FROM teams WHERE code = ${code} LIMIT 1`) as { id: number }[]
+  if (existing[0]) return { error: 'That code is already in use.' }
+
+  await sql`INSERT INTO teams (name, code) VALUES (${name}, ${code})`
+  revalidatePath('/admin')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function updateTeam(input: { id: number; name: string; code: string }) {
+  await requireAdmin()
+  const name = input.name.trim()
+  const code = input.code.trim().toUpperCase()
+  if (!name || !code) return { error: 'Name and code are required.' }
+
+  const existing = (await sql`
+    SELECT id FROM teams WHERE code = ${code} AND id != ${input.id} LIMIT 1
+  `) as { id: number }[]
+  if (existing[0]) return { error: 'That code is already in use by another team.' }
+
+  await sql`UPDATE teams SET name = ${name}, code = ${code} WHERE id = ${input.id}`
+  revalidatePath('/admin')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function deleteTeam(id: number) {
+  await requireAdmin()
+  await sql`DELETE FROM submissions WHERE team_id = ${id}`
+  await sql`DELETE FROM teams WHERE id = ${id}`
+  revalidatePath('/admin')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function getTeamsLastLocation() {
+  try {
+    await requireAdmin()
+    const locations = await sql`
+      SELECT DISTINCT ON (t.id)
+        t.id as team_id,
+        t.name as team_name,
+        s.latitude,
+        s.longitude,
+        c.title as challenge_title
+      FROM teams t
+      LEFT JOIN submissions s ON s.team_id = t.id
+      LEFT JOIN challenges c ON s.challenge_id = c.id
+      WHERE s.latitude IS NOT NULL 
+        AND s.longitude IS NOT NULL
+      ORDER BY t.id, s.created_at DESC
+    `
+    return locations
+  } catch (error) {
+    console.error("Erreur dans getTeamsLastLocation:", error)
+    return []
+  }
+}
