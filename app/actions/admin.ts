@@ -147,3 +147,19 @@ export async function importChallengesAction(challenges: { title: string; descri
     return { error: error.message || "Erreur lors de l'importation." }
   }
 }
+
+export async function resetDatabaseAction() {
+  try {
+    // 1. Supprime toutes les soumissions/preuves de défis faites par les équipes
+    await sql`TRUNCATE TABLE submissions CASCADE;`
+    
+    // 2. Remet les points de toutes les équipes à 0
+    // (Ajustez le nom de la table ou de la colonne si nécessaire, ex: 'teams' et 'points')
+    await sql`UPDATE teams SET points = 0;`
+    
+    revalidatePath('/admin')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message || "Erreur lors de la réinitialisation." }
+  }
+}
