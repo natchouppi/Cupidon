@@ -174,6 +174,9 @@ export async function deleteTeam(id: number) {
 export async function getTeamsLastLocation() {
   try {
     await requireAdmin()
+    
+    // On utilise LEFT JOIN pour récupérer toutes les équipes, 
+    // même celles qui n'ont AUCUNE soumission.
     const locations = await sql`
       SELECT DISTINCT ON (t.id)
         t.id as team_id,
@@ -184,13 +187,12 @@ export async function getTeamsLastLocation() {
       FROM teams t
       LEFT JOIN submissions s ON s.team_id = t.id
       LEFT JOIN challenges c ON s.challenge_id = c.id
-      WHERE s.latitude IS NOT NULL 
-        AND s.longitude IS NOT NULL
       ORDER BY t.id, s.created_at DESC
     `
-    return locations
+    // On renvoie le résultat (qui contiendra des null pour latitude/longitude si pas de soumission)
+    return locations || []
   } catch (error) {
     console.error("Erreur dans getTeamsLastLocation:", error)
-    return []
+    return [] 
   }
 }
