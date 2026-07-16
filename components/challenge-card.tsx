@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle2, Clock, XCircle, Camera } from 'lucide-react'
+import { CheckCircle2, Clock, XCircle, Send } from 'lucide-react'
 import type { Challenge, SubmissionStatus } from '@/lib/db'
 import { Button } from '@/components/ui/button'
 import { SubmitProofDialog } from '@/components/submit-proof-dialog'
@@ -46,8 +46,8 @@ export function ChallengeCard({
           <span className="text-sm font-medium text-pending">Awaiting review</span>
         ) : (
           <Button size="sm" onClick={() => setOpen(true)}>
-            <Camera className="size-4" />
-            {status === 'refused' ? 'Resubmit' : 'Submit proof'}
+            <Send className="size-4" />
+            {status === 'refused' ? 'Renvoyer la demande' : 'Valider le défi'}
           </Button>
         )}
       </div>
