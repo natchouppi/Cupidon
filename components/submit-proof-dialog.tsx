@@ -56,7 +56,7 @@ export function SubmitProofDialog({
 
       const res = await submitProof({
         challengeId,
-        proofUrl: blob.pathname,
+        proofUrl: blob.url,
         mediaType,
       })
 
