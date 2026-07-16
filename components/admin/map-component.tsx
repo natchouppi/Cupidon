@@ -6,8 +6,8 @@ import L from 'leaflet'
 
 // Fix pour les icônes de marqueurs par défaut qui ne s'affichent pas avec Next.js
 const DefaultIcon = L.icon({
-  iconUrl: '/leaflet/marker-icon.png', // Assurez-vous d'avoir ces assets dans votre dossier public
-  shadowUrl: '/leaflet/marker-shadow.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
 })
