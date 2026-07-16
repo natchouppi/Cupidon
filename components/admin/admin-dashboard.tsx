@@ -13,8 +13,7 @@ import { ChallengeManager } from '@/components/admin/challenge-manager'
 import { TeamManager } from '@/components/admin/team-manager'
 import dynamic from 'next/dynamic'
 
-// Chargement dynamique de la carte sans SSR (Server-Side Rendering) 
-// pour éviter que Leaflet ne fasse planter le serveur.
+// Chargement dynamique de la carte sans SSR
 const TeamsMap = dynamic(
   () => import('@/components/admin/teams-map').then((mod) => mod.TeamsMap),
   {
@@ -31,10 +30,12 @@ export function AdminDashboard({
   pending,
   challenges,
   teams,
+  locations,
 }: {
   pending: PendingSubmission[]
   challenges: Challenge[]
   teams: Team[]
+  locations: any[]
 }) {
   const [isPending, startTransition] = useTransition()
 
@@ -72,7 +73,6 @@ export function AdminDashboard({
 
       <main className="mx-auto w-full max-w-6xl px-4 py-8">
         <Tabs defaultValue="pending">
-          {/* Liste des onglets : nous passons à 4 boutons */}
           <TabsList className="grid grid-cols-4 w-full max-w-[480px]">
             <TabsTrigger value="pending" className="flex items-center justify-center">
               Pending
@@ -115,11 +115,11 @@ export function AdminDashboard({
             <TeamManager teams={teams} />
           </TabsContent>
 
-          {/* Nouvel onglet : Carte en direct */}
           <TabsContent value="map" className="mt-6">
             <div className="flex flex-col gap-4">
               <h2 className="font-display text-2xl font-bold">Géolocalisation</h2>
-              <TeamsMap />
+              {/* Transmission des locations au composant TeamsMap */}
+              <TeamsMap teams={locations} />
             </div>
           </TabsContent>
         </Tabs>
