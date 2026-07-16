@@ -114,9 +114,18 @@ function DeleteButton({ id, title }: { id: number; title: string }) {
   
   function handleDelete() {
     if (!confirm(`Supprimer "${title}" ?`)) return
+    
     startTransition(async () => {
-      await deleteChallenge(id)
-      toast.success('Défi supprimé.')
+      try {
+        const res = await deleteChallenge(id)
+        if (res?.error) {
+          toast.error(`Impossible de supprimer : ${res.error}`)
+        } else {
+          toast.success('Défi supprimé avec succès !')
+        }
+      } catch (e) {
+        toast.error("Erreur de connexion avec le serveur.")
+      }
     })
   }
 
