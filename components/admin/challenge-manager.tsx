@@ -4,7 +4,6 @@ import { useState, useTransition, useRef } from 'react'
 import { Plus, Pencil, Trash2, EyeOff, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { createChallenge, deleteChallenge, updateChallenge } from '@/app/actions/admin'
-// Importez l'action que nous venons de créer à l'étape 1 (ajustez le chemin si nécessaire)
 import { importChallengesAction } from '@/app/actions/admin' 
 import type { Challenge } from '@/lib/db'
 import { Button } from '@/components/ui/button'
@@ -23,7 +22,6 @@ export function ChallengeManager({ challenges }: { challenges: Challenge[] }) {
   const [isImporting, startImport] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Fonction pour lire et parser le fichier CSV sélectionné par l'admin
   function handleCSVImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -35,20 +33,27 @@ export function ChallengeManager({ challenges }: { challenges: Challenge[] }) {
 
       startImport(async () => {
         try {
-          const lines = text.split('\n')
-          const header = lines.shift() // Retirer l'en-tête (title,description,points)
+          // Découpe par ligne (gère Windows \r\n et Mac/Linux \n)
+          const lines = text.split(/\r?\n/)
           const parsedChallenges: { title: string; description: string; points: number }[] = []
 
-          for (const line of lines) {
-            if (!line.trim()) continue
+          for (let line of lines) {
+            line = line.trim()
+            if (!line) continue
 
-            // Regex robuste pour séparer par virgule tout en ignorant les virgules dans les guillemets ""
-            const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)
-            if (!matches || matches.length < 3) continue
+            // Ignorer la ligne d'en-tête si elle se présente
+            if (line.toLowerCase().startsWith('title;description;points') || line.toLowerCase().startsWith('title,description,points')) {
+              continue
+            }
 
-            const title = matches[0].replace(/^"|"$/g, '').trim()
-            const description = matches[1].replace(/^"|"$/g, '').trim()
-            const points = parseInt(matches[2].replace(/^"|"$/g, '').trim(), 10)
+            // Découpage simple par le point-virgule
+            const columns = line.split(';')
+            if (columns.length < 3) continue
+
+            // Nettoyage des guillemets autour de chaque colonne
+            const title = columns[0].replace(/^"|"$/g, '').trim()
+            const description = columns[1].replace(/^"|"$/g, '').trim()
+            const points = parseInt(columns[2].replace(/^"|"$/g, '').trim(), 10)
 
             if (title && !isNaN(points)) {
               parsedChallenges.push({ title, description, points })
@@ -56,16 +61,16 @@ export function ChallengeManager({ challenges }: { challenges: Challenge[] }) {
           }
 
           if (parsedChallenges.length === 0) {
-            toast.error("Aucun défi valide trouvé dans le CSV. Vérifiez le format.")
+            toast.error("Aucun défi valide trouvé. Vérifiez que le séparateur est bien un point-virgule.")
             return
           }
 
-          // Appel de l'action pour insérer en Base de Données
           const res = await importChallengesAction(parsedChallenges)
           if (res?.error) {
             toast.error(res.error)
           } else {
             toast.success(`${res.count} défis importés avec succès !`)
+            if (fileInputRef.current) fileInputRef.current.value = '' // Reset de l'input
           }
         } catch (err) {
           toast.error("Erreur lors de la lecture du fichier CSV.")
@@ -83,7 +88,6 @@ export function ChallengeManager({ challenges }: { challenges: Challenge[] }) {
         </p>
         
         <div className="flex items-center gap-2">
-          {/* Input masqué pour charger le CSV */}
           <input
             type="file"
             accept=".csv"
@@ -145,7 +149,6 @@ export function ChallengeManager({ challenges }: { challenges: Challenge[] }) {
   )
 }
 
-// --- Les sous-composants ChallengeDialog et DeleteChallengeButton restent identiques ---
 function ChallengeDialog({
   challenge,
   trigger,
