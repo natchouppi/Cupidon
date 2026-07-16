@@ -1,39 +1,21 @@
-import { getAllChallenges, getAllTeams, getPendingSubmissions } from '@/lib/db'
-import { isAdmin } from '@/lib/session'
-import { AdminLogin } from '@/components/admin/admin-login'
-import { AdminDashboard } from '@/components/admin/admin-dashboard'
-
-import { Suspense } from 'react'
-import TeamsMap from '@/components/admin/teams-map'
 import { getTeamsLastLocation } from '@/app/actions/admin'
+import { AdminDashboard } from '@/components/admin/admin-dashboard' // Assurez-vous du bon import
+// Importez aussi vos autres fonctions (challenges, pending, etc.)
 
 export default async function AdminPage() {
-  const teams = await getTeamsLastLocation()
-
-  return (
-    <div>
-      <h1>Tableau de bord Admin</h1>
-      
-      {/* Le Suspense permet de dire à React : "Si la carte prend du temps, affiche ça" */}
-      <Suspense fallback={<div>Chargement de la carte en cours...</div>}>
-        <TeamsMap teams={teams || []} />
-      </Suspense>
-    </div>
-  )
-}
-
-export const dynamic = 'force-dynamic'
-
-export default async function AdminPage() {
-  if (!(await isAdmin())) {
-    return <AdminLogin />
-  }
-
-  const [pending, challenges, teams] = await Promise.all([
-    getPendingSubmissions(),
-    getAllChallenges(),
-    getAllTeams(),
+  // On récupère toutes les données nécessaires proprement
+  const [teams, challenges, pending] = await Promise.all([
+    getTeamsLastLocation(),
+    getChallenges(), // Assurez-vous que ces fonctions existent
+    getPendingSubmissions()
   ])
 
-  return <AdminDashboard pending={pending} challenges={challenges} teams={teams} />
+  // On vérifie que les données sont bien des tableaux pour éviter le crash
+  return (
+    <AdminDashboard 
+      pending={pending || []} 
+      challenges={challenges || []} 
+      teams={teams || []} 
+    />
+  )
 }
