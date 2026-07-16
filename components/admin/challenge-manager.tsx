@@ -268,3 +268,37 @@ function DeleteChallengeButton({ id, title }: { id: number; title: string }) {
     </Button>
   )
 }
+
+import { resetDatabaseAction } from '@/app/actions/admin'
+import { RotateCcw } from 'lucide-react' // Un joli logo de réinitialisation
+
+// ... à l'intérieur de votre composant ChallengeManager, à côté du bouton d'import JSON :
+
+const [isResetting, startReset] = useTransition()
+
+async function handleReset() {
+  const confirmReset = confirm(
+    "⚠️ ATTENTION : Vous allez supprimer TOUTES les validations des équipes et remettre TOUS les scores à zéro. Cette action est irréversible. Voulez-vous continuer ?"
+  )
+  if (!confirmReset) return
+
+  startReset(async () => {
+    const res = await resetDatabaseAction()
+    if (res?.error) {
+      toast.error(res.error)
+    } else {
+      toast.success("Le jeu a été réinitialisé avec succès ! Prêt pour le départ. 🏁")
+    }
+  })
+}
+
+// ... et dans votre JSX de boutons, ajoutez :
+<Button 
+  size="sm" 
+  variant="destructive" 
+  disabled={isResetting}
+  onClick={handleReset}
+>
+  <RotateCcw className="mr-1.5 size-4" />
+  {isResetting ? 'Réinitialisation...' : 'Reset Général'}
+</Button>
