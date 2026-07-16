@@ -22,7 +22,7 @@ export function ChallengeManager({ challenges }: { challenges: Challenge[] }) {
   const [isImporting, startImport] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  function handleCSVImport(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleJSONImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -33,47 +33,38 @@ export function ChallengeManager({ challenges }: { challenges: Challenge[] }) {
 
       startImport(async () => {
         try {
-          // Découpe par ligne (gère Windows \r\n et Mac/Linux \n)
-          const lines = text.split(/\r?\n/)
-          const parsedChallenges: { title: string; description: string; points: number }[] = []
+          // Lecture directe du fichier JSON en 1 ligne !
+          const parsed = JSON.parse(text)
 
-          for (let line of lines) {
-            line = line.trim()
-            if (!line) continue
-
-            // Ignorer la ligne d'en-tête si elle se présente
-            if (line.toLowerCase().startsWith('title;description;points') || line.toLowerCase().startsWith('title,description,points')) {
-              continue
-            }
-
-            // Découpage simple par le point-virgule
-            const columns = line.split(';')
-            if (columns.length < 3) continue
-
-            // Nettoyage des guillemets autour de chaque colonne
-            const title = columns[0].replace(/^"|"$/g, '').trim()
-            const description = columns[1].replace(/^"|"$/g, '').trim()
-            const points = parseInt(columns[2].replace(/^"|"$/g, '').trim(), 10)
-
-            if (title && !isNaN(points)) {
-              parsedChallenges.push({ title, description, points })
-            }
-          }
-
-          if (parsedChallenges.length === 0) {
-            toast.error("Aucun défi valide trouvé. Vérifiez que le séparateur est bien un point-virgule.")
+          if (!Array.isArray(parsed)) {
+            toast.error("Le fichier JSON doit être une liste de défis (un tableau []).")
             return
           }
 
-          const res = await importChallengesAction(parsedChallenges)
+          // Validation rapide des données reçues
+          const validatedChallenges = parsed
+            .filter((c: any) => c.title && typeof c.points === 'number')
+            .map((c: any) => ({
+              title: String(c.title).trim(),
+              description: String(c.description || '').trim(),
+              points: Number(c.points)
+            }))
+
+          if (validatedChallenges.length === 0) {
+            toast.error("Aucun défi valide trouvé dans le JSON.")
+            return
+          }
+
+          // Envoi à la base de données (sans contrainte d'unicité bloquante)
+          const res = await importChallengesAction(validatedChallenges)
           if (res?.error) {
             toast.error(res.error)
           } else {
-            toast.success(`${res.count} défis importés avec succès !`)
+            toast.success(`${res.count} défis importés avec succès ! 🚀`)
             if (fileInputRef.current) fileInputRef.current.value = '' // Reset de l'input
           }
         } catch (err) {
-          toast.error("Erreur lors de la lecture du fichier CSV.")
+          toast.error("Erreur de format JSON. Vérifiez la syntaxe (virgules, accolades).")
         }
       })
     }
@@ -88,11 +79,12 @@ export function ChallengeManager({ challenges }: { challenges: Challenge[] }) {
         </p>
         
         <div className="flex items-center gap-2">
+          {/* Input configuré pour n'accepter que le JSON */}
           <input
             type="file"
-            accept=".csv"
+            accept=".json"
             ref={fileInputRef}
-            onChange={handleCSVImport}
+            onChange={handleJSONImport}
             className="hidden"
           />
           <Button 
@@ -102,7 +94,7 @@ export function ChallengeManager({ challenges }: { challenges: Challenge[] }) {
             onClick={() => fileInputRef.current?.click()}
           >
             <Upload className="mr-1.5 size-4" />
-            {isImporting ? 'Importation...' : 'Importer un CSV'}
+            {isImporting ? 'Importation...' : 'Importer un JSON'}
           </Button>
 
           <ChallengeDialog
