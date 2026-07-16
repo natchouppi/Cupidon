@@ -1,10 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { submitProof } from '@/app/actions/submissions'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea' // Si vous n'avez pas ce composant, utilisez une balise <textarea> classique
 import {
   Dialog,
   DialogContent,
@@ -28,22 +27,65 @@ export function SubmitProofDialog({
 }) {
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  
+  // State pour stocker la localisation GPS
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null)
+
+  // Demander la localisation dès que la boîte de dialogue s'ouvre
+  useEffect(() => {
+    if (open) {
+      requestLocation()
+    }
+  }, [open])
 
   function reset() {
     setNote('')
+    setLocation(null)
     setBusy(false)
   }
 
+  // Fonction pour demander la position GPS de l'appareil
+  function requestLocation() {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          })
+          toast.success('Position GPS récupérée ! 📍')
+        },
+        (error) => {
+          console.error('Erreur GPS:', error)
+          toast.error(
+            'Veuillez activer votre GPS/localisation pour pouvoir valider ce défi.'
+          )
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      )
+    } else {
+      toast.error("La géolocalisation n'est pas supportée par votre téléphone.")
+    }
+  }
+
   async function handleSubmit() {
+    // Optionnel : Bloquer la soumission si on n'a pas pu obtenir la localisation GPS
+    if (!location) {
+      toast.error('Localisation GPS requise ! Veuillez autoriser le GPS et patienter une seconde.')
+      requestLocation() // On retente d'obtenir la position
+      return
+    }
+
     setBusy(true)
     try {
-      // Nous appelons l'action d'enregistrement en base de données 
-      // sans envoyer d'image (proofUrl est vide, et mediaType est à null ou 'image')
+      // On envoie à la fois le commentaire, la latitude et la longitude !
       const res = await submitProof({
         challengeId,
-        proofUrl: '', // Pas d'image
+        proofUrl: '', // Pas de photo
         mediaType: 'image',
-        // Si votre action accepte une note ou un texte d'explication, vous pouvez l'envoyer ici
+        comment: note.trim(), // On passe la note en commentaire
+        latitude: location.latitude,
+        longitude: location.longitude,
       })
 
       if (res.error) {
@@ -74,21 +116,47 @@ export function SubmitProofDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="font-display text-xl text-balance">{challengeTitle}</DialogTitle>
+          <DialogTitle className="font-display text-xl text-balance">
+            {challengeTitle}
+          </DialogTitle>
           <DialogDescription>
             Demander la validation de ce défi. Il vous rapportera{' '}
-            <span className="font-semibold text-accent">{points} pts</span> une fois qu'un admin aura approuvé votre demande.
+            <span className="font-semibold text-accent">{points} pts</span> une
+            fois qu'un admin aura approuvé votre demande.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
+          {/* Indicateur visuel du GPS pour rassurer l'équipe */}
+          <div className="flex items-center justify-between rounded-lg border border-border bg-muted/20 p-2.5 text-xs">
+            <span className="text-muted-foreground flex items-center gap-1.5">
+              📍 Localisation GPS :
+            </span>
+            {location ? (
+              <span className="font-semibold text-green-600 dark:text-green-400 animate-pulse">
+                Prête (Précision OK)
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={requestLocation}
+                className="font-semibold text-blue-500 hover:underline"
+              >
+                Recherche de signal... (Cliquer pour forcer)
+              </button>
+            )}
+          </div>
+
           <div className="flex flex-col gap-2">
-            <label htmlFor="note" className="text-sm font-medium text-muted-foreground">
-              Note pour les admins (optionnel) :
+            <label
+              htmlFor="note"
+              className="text-sm font-medium text-muted-foreground"
+            >
+              Votre réponse ou commentaire :
             </label>
             <textarea
               id="note"
-              placeholder="Expliquez brièvement comment vous avez réalisé le défi..."
+              placeholder="Écrivez votre réponse ou expliquez comment vous avez fait..."
               value={note}
               onChange={(e) => setNote(e.target.value)}
               className="min-h-[80px] w-full rounded-lg border border-border bg-card p-3 text-sm outline-none focus:border-primary"
