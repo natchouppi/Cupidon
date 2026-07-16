@@ -1,95 +1,70 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import dynamic from 'next/dynamic'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { getTeamsLastLocation } from '@/app/actions/admin'
 
-// Correction d'un bug classique de Leaflet avec Next.js pour afficher les icônes de marqueurs
-const customIcon = new L.Icon({
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+// 1. Import dynamique obligatoire pour Next.js (évite l'erreur SSR)
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false, loading: () => <div className="h-[400px] w-full bg-gray-100 animate-pulse" /> }
+)
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false }
+)
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false }
+)
+const Popup = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Popup),
+  { ssr: false }
+)
+
+// 2. Correction pour les icônes Leaflet qui disparaissent souvent par défaut
+const iconUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png"
+const shadowUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png"
+
+const DefaultIcon = L.icon({
+  iconUrl,
+  shadowUrl,
   iconSize: [25, 41],
   iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
 })
 
-interface TeamLocation {
-  team_id: number
-  team_name: string
-  team_code: string
-  latitude: number
-  longitude: number
-  last_seen: string
-  challenge_title: string
-}
+L.Marker.prototype.options.icon = DefaultIcon
 
-export function TeamsMap() {
-  const [locations, setLocations] = useState<TeamLocation[]>([])
-  const [loading, setLoading] = useState(true)
+export default function TeamsMap({ teams }: { teams: any[] }) {
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    async function loadLocations() {
-      const res = await getTeamsLastLocation()
-      if (res.success && res.data) {
-        setLocations(res.data as TeamLocation[])
-      }
-      setLoading(false)
-    }
-
-    loadLocations()
-    // Optionnel : Rafraîchir les positions toutes les 30 secondes automatiquement !
-    const interval = setInterval(loadLocations, 30000)
-    return () => clearInterval(interval)
+    setIsMounted(true)
   }, [])
 
-  if (loading) {
-    return <div className="p-8 text-center text-muted-foreground">Chargement de la carte...</div>
-  }
-
-  // Position de départ de la carte par défaut (ici centrée sur Paris, s'adaptera s'il y a des données)
-  const defaultCenter: [number, number] = locations.length > 0 
-    ? [locations[0].latitude, locations[0].longitude] 
-    : [48.8566, 2.3522]
+  if (!isMounted) return null
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 flex flex-col gap-4">
-      <div>
-        <h2 className="font-display text-lg font-bold">Carte en direct</h2>
-        <p className="text-sm text-muted-foreground">
-          Dernière position GPS connue de vos {locations.length} équipes actives.
-        </p>
-      </div>
-
-      <div className="h-[500px] w-full rounded-lg overflow-hidden border border-border">
-        <MapContainer center={defaultCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          {locations.map((loc) => (
-            <Marker 
-              key={loc.team_id} 
-              position={[loc.latitude, loc.longitude]}
-              icon={customIcon}
-            >
-              <Popup>
-                <div className="text-sm">
-                  <strong className="text-base text-primary">{loc.team_name}</strong>
-                  <div className="text-xs text-muted-foreground">Code: {loc.team_code}</div>
-                  <hr className="my-1.5" />
-                  <div className="font-medium">Dernier défi validé :</div>
-                  <div className="italic text-muted-foreground">"{loc.challenge_title}"</div>
-                  <div className="text-[10px] text-muted-foreground/60 mt-1">
-                    Signal reçu à : {new Date(loc.last_seen).toLocaleTimeString()}
-                  </div>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
-      </div>
+    <div className="h-[400px] w-full rounded-lg overflow-hidden border">
+      <MapContainer 
+        center={[48.8566, 2.3522] as [number, number]} 
+        zoom={6} 
+        style={{ height: '100%', width: '100%' }}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        
+        {teams.map((team) => (
+          <Marker key={team.id} position={[team.lat, team.lng] as [number, number]}>
+            <Popup>
+              <div className="font-semibold">{team.name}</div>
+            </Popup>
+          </Marker>
+        ))}
+      </MapContainer>
     </div>
   )
 }
