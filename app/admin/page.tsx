@@ -12,18 +12,17 @@ export default async function AdminPage() {
   let pending = []
 
   try {
-    // On lance les vraies fonctions qui existent dans vos fichiers
     const results = await Promise.all([
-      getAllTeams(),
-      getTeamsLastLocation(),
-      getAllChallenges(),     // Vient de lib/db.ts
-      getPendingSubmissions() // Vient de lib/db.ts
+      getAllTeams(),          // index 0
+      getTeamsLastLocation(), // index 1
+      getAllChallenges(),     // index 2
+      getPendingSubmissions() // index 3
     ])
     
     teams = results[0] || []
     locations = results[1] || []
-    challenges = results[1] || []
-    pending = results[2] || []
+    challenges = results[2] || []
+    pending = results[3] || []
     
   } catch (error) {
     console.error("Erreur lors de la récupération des données admin:", error)
