@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Plus, Pencil, Trash2, Copy, Check } from 'lucide-react'
+import { Plus, Pencil, Trash2, Copy, Check, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
-import { createTeam, deleteTeam, updateTeam } from '@/app/actions/admin'
+import { createTeam, deleteTeam, updateTeam, resetScoresAction } from '@/app/actions/admin'
 import type { Team } from '@/lib/db'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,14 +24,17 @@ export function TeamManager({ teams }: { teams: Team[] }) {
         <p className="text-sm text-muted-foreground">
           {teams.length} team{teams.length === 1 ? '' : 's'} · share each code with its two players
         </p>
-        <TeamDialog
-          trigger={
-            <Button size="sm">
-              <Plus className="size-4" />
-              New team
-            </Button>
-          }
-        />
+        <div className="flex gap-2">
+          <ResetScoresButton />
+          <TeamDialog
+            trigger={
+              <Button size="sm">
+                <Plus className="size-4" />
+                New team
+              </Button>
+            }
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -146,6 +149,33 @@ function TeamDialog({ team, trigger }: { team?: Team; trigger: React.ReactNode }
         </form>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function ResetScoresButton() {
+  const [isPending, startTransition] = useTransition()
+
+  function handleReset() {
+    const confirmed = confirm(
+      '⚠️ Cela va supprimer toutes les validations et remettre tous les scores à zéro, sans toucher aux équipes ni aux défis. Continuer ?'
+    )
+    if (!confirmed) return
+
+    startTransition(async () => {
+      const res = await resetScoresAction()
+      if (res?.error) {
+        toast.error(res.error)
+      } else {
+        toast.success('Scores remis à zéro.')
+      }
+    })
+  }
+
+  return (
+    <Button size="sm" variant="destructive" onClick={handleReset} disabled={isPending}>
+      <RotateCcw className="size-4" />
+      Reset scores
+    </Button>
   )
 }
 
