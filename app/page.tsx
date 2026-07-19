@@ -1,4 +1,6 @@
-import { Zap } from 'lucide-react'
+import type { ComponentType } from 'react'
+import { Zap, Target, Sparkles, Users } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import {
   getActiveChallenges,
   getLeaderboard,
@@ -33,9 +35,14 @@ export default async function HomePage() {
       <SiteHeader teamName={team?.name ?? null} />
 
       {/* Hero */}
-      <section className="border-b border-border">
+      <section className="relative overflow-hidden border-b border-border">
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+          <div className="absolute -top-32 -left-20 size-80 rounded-full bg-primary/25 blur-3xl" />
+          <div className="absolute -bottom-32 right-0 size-96 rounded-full bg-accent/15 blur-3xl" />
+        </div>
+
         <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:py-20">
-          <div className="flex items-center gap-2 text-sm font-medium text-primary">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
             <Zap className="size-4" />
             6 teams · 2 lads each · winner takes all
           </div>
@@ -52,9 +59,9 @@ export default async function HomePage() {
           <div className="mt-8 flex flex-wrap items-center gap-3">
             {!team && <TeamLoginDialog triggerLabel="Enter your team code" />}
             <div className="flex flex-wrap gap-3">
-              <Stat value={challenges.length} label="Challenges" />
-              <Stat value={totalPoints} label="Points up for grabs" />
-              <Stat value={leaderboard.length} label="Teams" />
+              <Stat value={challenges.length} label="Challenges" icon={Target} tone="primary" />
+              <Stat value={totalPoints} label="Points up for grabs" icon={Sparkles} tone="pending" />
+              <Stat value={leaderboard.length} label="Teams" icon={Users} tone="accent" />
             </div>
           </div>
         </div>
@@ -64,7 +71,10 @@ export default async function HomePage() {
       <main className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 py-10 lg:grid-cols-3">
         <section className="lg:col-span-2">
           <div className="mb-5 flex items-baseline justify-between">
-            <h2 className="font-display text-2xl font-bold">Challenges</h2>
+            <h2 className="flex items-center gap-2 font-display text-2xl font-bold">
+              <Target className="size-5 text-primary" />
+              Challenges
+            </h2>
             <span className="text-sm text-muted-foreground">
               {challenges.length} available
             </span>
@@ -102,11 +112,32 @@ export default async function HomePage() {
   )
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
+const STAT_TONES = {
+  primary: 'bg-primary/15 text-primary',
+  accent: 'bg-accent/15 text-accent',
+  pending: 'bg-pending/15 text-pending',
+}
+
+function Stat({
+  value,
+  label,
+  icon: Icon,
+  tone,
+}: {
+  value: number
+  label: string
+  icon: ComponentType<{ className?: string }>
+  tone: keyof typeof STAT_TONES
+}) {
   return (
-    <div className="rounded-lg border border-border bg-card px-4 py-2">
-      <div className="font-display text-2xl font-bold leading-none">{value}</div>
-      <div className="mt-1 text-xs text-muted-foreground">{label}</div>
+    <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-2.5">
+      <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg', STAT_TONES[tone])}>
+        <Icon className="size-4" />
+      </span>
+      <div>
+        <div className="font-display text-xl font-bold leading-none">{value}</div>
+        <div className="mt-1 text-xs text-muted-foreground">{label}</div>
+      </div>
     </div>
   )
 }
