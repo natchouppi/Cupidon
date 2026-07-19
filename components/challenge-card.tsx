@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { CheckCircle2, Clock, XCircle, Send } from 'lucide-react'
 import type { Challenge, SubmissionStatus } from '@/lib/db'
 import { cn } from '@/lib/utils'
+import { categoryColor } from '@/lib/category-colors'
 import { Button } from '@/components/ui/button'
 import { SubmitProofDialog } from '@/components/submit-proof-dialog'
 import { TeamLoginDialog } from '@/components/team-login-dialog'
@@ -48,6 +49,18 @@ export function ChallengeCard({
           {challenge.points} pts
         </span>
       </div>
+
+      {challenge.category && (
+        <span
+          className="inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+          style={{
+            backgroundColor: categoryColor(challenge.category).bg,
+            color: categoryColor(challenge.category).text,
+          }}
+        >
+          {challenge.category}
+        </span>
+      )}
 
       {challenge.description && (
         <p className="text-sm leading-relaxed text-muted-foreground">{challenge.description}</p>
