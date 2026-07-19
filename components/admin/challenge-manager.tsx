@@ -11,6 +11,7 @@ import {
   resetChallengesAction
 } from '@/app/actions/admin'
 import type { Challenge } from '@/lib/db'
+import { categoryColor } from '@/lib/category-colors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -72,22 +73,24 @@ export function ChallengeManager({ challenges }: { challenges: Challenge[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
+        <NewChallengeDialog />
+
         <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
           <Upload className="size-4 mr-2" /> Importer JSON
         </Button>
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          className="hidden" 
-          accept=".json" 
-          onChange={handleJSONImport} 
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          accept=".json"
+          onChange={handleJSONImport}
         />
-        
-        <Button 
-          size="sm" 
-          variant="destructive" 
-          onClick={handleReset} 
+
+        <Button
+          size="sm"
+          variant="destructive"
+          onClick={handleReset}
           disabled={isResetting}
         >
           <RotateCcw className="size-4 mr-2" /> Supprimer tous les défis
@@ -98,7 +101,20 @@ export function ChallengeManager({ challenges }: { challenges: Challenge[] }) {
         {challenges.map((c) => (
           <div key={c.id} className="p-4 border rounded-lg flex justify-between items-center">
             <div>
-              <h3 className="font-semibold">{c.title}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold">{c.title}</h3>
+                {c.category && (
+                  <span
+                    className="rounded-full px-2 py-0.5 text-xs font-semibold"
+                    style={{
+                      backgroundColor: categoryColor(c.category).bg,
+                      color: categoryColor(c.category).text,
+                    }}
+                  >
+                    {c.category}
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground">{c.description}</p>
             </div>
             <DeleteButton id={c.id} title={c.title} />
@@ -106,6 +122,91 @@ export function ChallengeManager({ challenges }: { challenges: Challenge[] }) {
         ))}
       </div>
     </div>
+  )
+}
+
+function NewChallengeDialog() {
+  const [open, setOpen] = useState(false)
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [points, setPoints] = useState('10')
+  const [category, setCategory] = useState('')
+  const [isPending, startTransition] = useTransition()
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    startTransition(async () => {
+      const res = await createChallenge({
+        title,
+        description,
+        points: Number(points) || 0,
+        category: category.trim() || undefined,
+      })
+      if (res?.error) {
+        toast.error(res.error)
+        return
+      }
+      toast.success('Défi créé !')
+      setOpen(false)
+      setTitle('')
+      setDescription('')
+      setPoints('10')
+      setCategory('')
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm">
+          <Plus className="size-4 mr-2" /> Nouveau défi
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="font-display text-xl">Nouveau défi</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="c-title">Titre</Label>
+            <Input id="c-title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="c-desc">Description</Label>
+            <Textarea
+              id="c-desc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="c-points">Points</Label>
+              <Input
+                id="c-points"
+                type="number"
+                min={0}
+                value={points}
+                onChange={(e) => setPoints(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="c-category">Catégorie</Label>
+              <Input
+                id="c-category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="Ex: Physique"
+              />
+            </div>
+          </div>
+          <Button type="submit" disabled={isPending}>
+            {isPending ? 'Création...' : 'Créer le défi'}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
