@@ -8,7 +8,7 @@ const Map = dynamic(() => import('./map-component'), {
   loading: () => <div className="h-[400px] w-full flex items-center justify-center border">Chargement de la carte...</div>
 })
 
-export default function TeamsMap({ teams }: { teams: any[] }) {
+export default function TeamsMap({ teams, trail }: { teams: any[]; trail?: any[] }) {
   const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
@@ -17,8 +17,10 @@ export default function TeamsMap({ teams }: { teams: any[] }) {
 
   if (!isClient) return <div className="h-[400px] w-full border" />
 
-  // ON SÉCURISE ICI : on garantit que teams est un tableau, même vide
+  // ON SÉCURISE ICI : on garantit que teams et trail sont des tableaux, même vides
   const safeTeams = Array.isArray(teams) ? teams : []
+  const safeTrail = Array.isArray(trail) ? trail : []
 
   return <Map teams={safeTeams} />
+  return <Map teams={safeTeams} trail={safeTrail} />
 }
