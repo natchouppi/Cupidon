@@ -28,6 +28,7 @@ export type Submission = {
   proof_url: string
   media_type: 'image' | 'video'
   status: SubmissionStatus
+  comment: string | null
   note: string | null
   latitude: number | null
   longitude: number | null
