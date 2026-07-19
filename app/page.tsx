@@ -86,8 +86,6 @@ export default async function HomePage() {
             })}
             loggedIn={!!team}
           />
-            </div>
-          )}
         </section>
 
         <aside className="lg:col-span-1">
