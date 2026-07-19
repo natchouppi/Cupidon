@@ -28,12 +28,15 @@ export default function MapComponent({ teams }: { teams: any[] }) {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       
-      {teams.map((team) => (
-        team.latitude && team.longitude ? (
-          <Marker 
-            key={team.team_id} 
-            position={[team.latitude, team.longitude] as [number, number]}
-          >
+      {teams.map((team) => {
+        const lat = Number(team.latitude)
+        const lng = Number(team.longitude)
+        const hasValidPosition =
+          Number.isFinite(lat) && Number.isFinite(lng) &&
+          lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+        if (!hasValidPosition) return null
+        return (
+          <Marker key={team.team_id} position={[lat, lng] as [number, number]}>
             <Popup>
               <div className="text-sm">
                 <p className="font-bold">{team.team_name}</p>
@@ -41,8 +44,8 @@ export default function MapComponent({ teams }: { teams: any[] }) {
               </div>
             </Popup>
           </Marker>
-        ) : null
-      ))}
+        )
+      })}
     </MapContainer>
   )
 }
