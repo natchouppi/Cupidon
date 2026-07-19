@@ -32,11 +32,13 @@ export function AdminDashboard({
   challenges,
   teams,
   locations,
+  trail,
 }: {
   pending: PendingSubmission[]
   challenges: Challenge[]
   teams: Team[]
   locations: any[]
+  trail: any[]
 }) {
   const [isPending, startTransition] = useTransition()
 
@@ -121,7 +123,7 @@ export function AdminDashboard({
               <h2 className="font-display text-2xl font-bold">Géolocalisation</h2>
               {/* Transmission des locations au composant TeamsMap */}
               <MapErrorBoundary>
-                <TeamsMap teams={locations} />
+                <TeamsMap teams={locations} trail={trail} />
               </MapErrorBoundary>
             </div>
           </TabsContent>
