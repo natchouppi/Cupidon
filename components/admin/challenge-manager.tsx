@@ -3,12 +3,12 @@
 import { useState, useTransition, useRef } from 'react'
 import { Plus, Pencil, Trash2, EyeOff, Upload, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
-import { 
-  createChallenge, 
-  deleteChallenge, 
-  updateChallenge, 
+import {
+  createChallenge,
+  deleteChallenge,
+  updateChallenge,
   importChallengesAction,
-  resetDatabaseAction 
+  resetChallengesAction
 } from '@/app/actions/admin'
 import type { Challenge } from '@/lib/db'
 import { Button } from '@/components/ui/button'
@@ -56,16 +56,16 @@ export function ChallengeManager({ challenges }: { challenges: Challenge[] }) {
 
   async function handleReset() {
     const confirmReset = confirm(
-      "⚠️ ATTENTION : Vous allez supprimer TOUTES les validations des équipes et remettre TOUS les scores à zéro. Cette action est irréversible. Voulez-vous continuer ?"
+      "⚠️ ATTENTION : Vous allez supprimer TOUS LES DÉFIS ainsi que toutes les validations des équipes. Cette action est irréversible. Voulez-vous continuer ?"
     )
     if (!confirmReset) return
 
     startReset(async () => {
-      const res = await resetDatabaseAction()
+      const res = await resetChallengesAction()
       if (res?.error) {
         toast.error(res.error)
       } else {
-        toast.success("Le jeu a été réinitialisé avec succès ! Prêt pour le départ. 🏁")
+        toast.success("Tous les défis ont été supprimés. Prêt pour en importer de nouveaux ! 🏁")
       }
     })
   }
@@ -90,7 +90,7 @@ export function ChallengeManager({ challenges }: { challenges: Challenge[] }) {
           onClick={handleReset} 
           disabled={isResetting}
         >
-          <RotateCcw className="size-4 mr-2" /> Réinitialiser
+          <RotateCcw className="size-4 mr-2" /> Supprimer tous les défis
         </Button>
       </div>
 
