@@ -9,7 +9,7 @@ import {
 } from '@/lib/db'
 import { getCurrentTeam } from '@/lib/session'
 import { SiteHeader } from '@/components/site-header'
-import { ChallengeCard } from '@/components/challenge-card'
+import { ChallengeList } from '@/components/challenge-list'
 import { Leaderboard } from '@/components/leaderboard'
 import { TeamLoginDialog } from '@/components/team-login-dialog'
 
