@@ -21,6 +21,5 @@ export default function TeamsMap({ teams, trail }: { teams: any[]; trail?: any[]
   const safeTeams = Array.isArray(teams) ? teams : []
   const safeTrail = Array.isArray(trail) ? trail : []
 
-  return <Map teams={safeTeams} />
   return <Map teams={safeTeams} trail={safeTrail} />
 }
