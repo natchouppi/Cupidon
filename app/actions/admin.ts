@@ -111,8 +111,9 @@ export async function importChallengesAction(
 export async function resetDatabaseAction() {
   try {
     await requireAdmin()
+    // Les scores sont calculés à la volée depuis submissions (voir getLeaderboard),
+    // donc vider submissions suffit à remettre tous les scores à zéro.
     await sql`TRUNCATE TABLE submissions CASCADE;`
-    await sql`UPDATE teams SET points = 0;`
     revalidatePath('/admin')
     revalidatePath('/')
     return { success: true }
