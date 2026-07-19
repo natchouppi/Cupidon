@@ -79,25 +79,13 @@ export default async function HomePage() {
               {challenges.length} available
             </span>
           </div>
-
-          {challenges.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border bg-card px-6 py-12 text-center text-muted-foreground">
-              No challenges have been added yet. Check back soon.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {challenges.map((challenge) => {
-                const entry = statusByChallenge.get(challenge.id)
-                return (
-                  <ChallengeCard
-                    key={challenge.id}
-                    challenge={challenge}
-                    loggedIn={!!team}
-                    status={entry?.status ?? null}
-                    note={entry?.note ?? null}
-                  />
-                )
-              })}
+          <ChallengeList
+            items={challenges.map((challenge) => {
+              const entry = statusByChallenge.get(challenge.id)
+              return { challenge, status: entry?.status ?? null, note: entry?.note ?? null }
+            })}
+            loggedIn={!!team}
+          />
             </div>
           )}
         </section>
