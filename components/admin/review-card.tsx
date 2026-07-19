@@ -53,6 +53,7 @@ export function ReviewCard({ submission }: { submission: PendingSubmission }) {
         pathname={submission.proof_url}
         mediaType={submission.media_type}
         title={submission.challenge_title}
+        comment={submission.comment}
       />
 
       {showRefuse && (

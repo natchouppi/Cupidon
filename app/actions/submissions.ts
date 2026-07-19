@@ -8,13 +8,14 @@ export async function submitProof(input: {
   challengeId: number
   proofUrl?: string | null // Rendu optionnel
   mediaType?: 'image' | 'video' | null // Rendu optionnel
+  comment?: string | null
   latitude?: number | null
   longitude?: number | null
 }) {
   const team = await getCurrentTeam()
   if (!team) return { error: 'You must be logged in as a team.' }
 
-  const { challengeId, proofUrl, mediaType, latitude, longitude } = input
+  const { challengeId, proofUrl, mediaType, comment, latitude, longitude } = input
   const validLatitude =
     typeof latitude === 'number' && Number.isFinite(latitude) && latitude >= -90 && latitude <= 90
       ? latitude
@@ -51,8 +52,8 @@ export async function submitProof(input: {
 
   // Insertion en base de données avec des valeurs de secours si vides
   await sql`
-    INSERT INTO submissions (team_id, challenge_id, proof_url, media_type, status, latitude, longitude)
-    VALUES (${team.id}, ${challengeId}, ${proofUrl || ''}, ${mediaType || 'image'}, 'pending', ${validLatitude}, ${validLongitude})
+    INSERT INTO submissions (team_id, challenge_id, proof_url, media_type, status, comment, latitude, longitude)
+    VALUES (${team.id}, ${challengeId}, ${proofUrl || ''}, ${mediaType || 'image'}, 'pending', ${comment?.trim() || null}, ${validLatitude}, ${validLongitude})
   `
 
   revalidatePath('/')
