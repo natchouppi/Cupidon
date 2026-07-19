@@ -2,10 +2,16 @@
 import { getTeamsLastLocation } from '@/app/actions/admin'
 // 2. LA CORRECTION EST ICI : on importe les données depuis la base de données (db.ts)
 import { getAllChallenges, getPendingSubmissions, getAllTeams } from '@/lib/db'
-
+import { isAdmin } from '@/lib/session'
 import { AdminDashboard } from '@/components/admin/admin-dashboard'
+import { AdminLogin } from '@/components/admin/admin-login'
 
+export const dynamic = 'force-dynamic'
 export default async function AdminPage() {
+
+  if (!(await isAdmin())) {
+    return <AdminLogin />
+  }
   let teams = []
   let locations = []
   let challenges = []
