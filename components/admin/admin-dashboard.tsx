@@ -11,11 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ReviewCard } from '@/components/admin/review-card'
 import { ChallengeManager } from '@/components/admin/challenge-manager'
 import { TeamManager } from '@/components/admin/team-manager'
+import { MapErrorBoundary } from '@/components/admin/map-error-boundary'
 import dynamic from 'next/dynamic'
 
 // Chargement dynamique de la carte sans SSR
 const TeamsMap = dynamic(
-  () => import('@/components/admin/teams-map').then((mod) => mod.TeamsMap),
+  () => import('@/components/admin/teams-map').then((mod) => mod.default),
   {
     ssr: false,
     loading: () => (
@@ -119,7 +120,9 @@ export function AdminDashboard({
             <div className="flex flex-col gap-4">
               <h2 className="font-display text-2xl font-bold">Géolocalisation</h2>
               {/* Transmission des locations au composant TeamsMap */}
-              <TeamsMap teams={locations} />
+              <MapErrorBoundary>
+                <TeamsMap teams={locations} />
+              </MapErrorBoundary>
             </div>
           </TabsContent>
         </Tabs>
