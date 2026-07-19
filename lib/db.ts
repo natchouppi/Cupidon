@@ -15,6 +15,7 @@ export type Challenge = {
   description: string | null
   points: number
   active: boolean
+  category: string | null
   created_at: string
 }
 
