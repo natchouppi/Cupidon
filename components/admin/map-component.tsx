@@ -47,7 +47,8 @@ function hasValidPosition(lat: unknown, lng: unknown) {
   return Number.isFinite(a) && Number.isFinite(b) && a >= -90 && a <= 90 && b >= -180 && b <= 180
 }
 
-export default function MapComponent({ teams, trail }: { teams: any[]; trail: any[] }) {  // Centre de la carte par défaut
+export default function MapComponent({ teams, trail }: { teams: any[]; trail: any[] }) {
+  // Centre de la carte par défaut
   const center: [number, number] = [48.8566, 2.3522]
 
   return (
@@ -60,6 +61,7 @@ export default function MapComponent({ teams, trail }: { teams: any[]; trail: an
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+
       {/* Petits points : historique des défis validés */}
       {trail.map((entry) => {
         if (!hasValidPosition(entry.latitude, entry.longitude)) return null
@@ -91,10 +93,14 @@ export default function MapComponent({ teams, trail }: { teams: any[]; trail: an
         if (!hasValidPosition(team.latitude, team.longitude)) return null
 
         return (
-          <Marker 
-            key={team.team_id} 
+          <Marker
+            key={team.team_id}
             position={[Number(team.latitude), Number(team.longitude)]}
             icon={pinIcon(colorForTeam(team.team_id))}
+          >
+            <Tooltip permanent direction="top" offset={[0, -38]}>
+              {team.team_name}
+            </Tooltip>
             <Popup>
               <div className="text-sm">
                 <p className="font-bold">{team.team_name}</p>
