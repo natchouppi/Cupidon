@@ -33,14 +33,16 @@ export async function createChallenge(input: {
   title: string
   description: string
   points: number
+  category?: string | null
 }) {
   await requireAdmin()
   const title = input.title.trim()
   if (!title) return { error: 'Title is required.' }
   const points = Number.isFinite(input.points) ? Math.max(0, Math.round(input.points)) : 0
+  const category = input.category?.trim() || null
   await sql`
-    INSERT INTO challenges (title, description, points)
-    VALUES (${title}, ${input.description.trim() || null}, ${points})
+    INSERT INTO challenges (title, description, points, category)
+    VALUES (${title}, ${input.description.trim() || null}, ${points}, ${category})
   `
   revalidatePath('/admin')
   revalidatePath('/')
@@ -53,17 +55,20 @@ export async function updateChallenge(input: {
   description: string
   points: number
   active: boolean
+  category?: string | null
 }) {
   await requireAdmin()
   const title = input.title.trim()
   if (!title) return { error: 'Title is required.' }
   const points = Number.isFinite(input.points) ? Math.max(0, Math.round(input.points)) : 0
+  const category = input.category?.trim() || null
   await sql`
     UPDATE challenges
     SET title = ${title},
         description = ${input.description.trim() || null},
         points = ${points},
-        active = ${input.active}
+        active = ${input.active},
+        category = ${category}
     WHERE id = ${input.id}
   `
   revalidatePath('/admin')
@@ -85,17 +90,15 @@ export async function deleteChallenge(id: number) {
   }
 }
 
-// ---- Importation JSON ----
-
 export async function importChallengesAction(
-  challenges: { title: string; description: string; points: number }[]
+  challenges: { title: string; description: string; points: number; category?: string }[]
 ) {
   try {
     await requireAdmin()
     for (const c of challenges) {
       await sql`
-        INSERT INTO challenges (title, description, points, active)
-        VALUES (${c.title}, ${c.description || null}, ${c.points}, true);
+        INSERT INTO challenges (title, description, points, active, category)
+        VALUES (${c.title}, ${c.description || null}, ${c.points}, true, ${c.category?.trim() || null});
       `
     }
     revalidatePath('/admin')
