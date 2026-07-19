@@ -193,6 +193,33 @@ export async function getTeamsLastLocation() {
     return locations || []
   } catch (error) {
     console.error("Erreur dans getTeamsLastLocation:", error)
-    return [] 
+    return []
+  }
+}
+
+export async function getApprovedSubmissionLocations() {
+  try {
+    await requireAdmin()
+
+    const rows = await sql`
+      SELECT
+        s.id as submission_id,
+        t.id as team_id,
+        t.name as team_name,
+        s.latitude,
+        s.longitude,
+        c.title as challenge_title
+      FROM submissions s
+      JOIN teams t ON t.id = s.team_id
+      LEFT JOIN challenges c ON c.id = s.challenge_id
+      WHERE s.status = 'approved'
+        AND s.latitude IS NOT NULL
+        AND s.longitude IS NOT NULL
+      ORDER BY s.created_at ASC
+    `
+    return rows || []
+  } catch (error) {
+    console.error("Erreur dans getApprovedSubmissionLocations:", error)
+    return []
   }
 }
