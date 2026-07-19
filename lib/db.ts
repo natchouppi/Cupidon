@@ -28,6 +28,8 @@ export type Submission = {
   media_type: 'image' | 'video'
   status: SubmissionStatus
   note: string | null
+  latitude: number | null
+  longitude: number | null
   created_at: string
   reviewed_at: string | null
 }
