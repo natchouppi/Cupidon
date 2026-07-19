@@ -108,17 +108,31 @@ export async function importChallengesAction(
 
 // ---- Reset Général du Jeu ----
 
-export async function resetDatabaseAction() {
+// Supprime tous les défis (et leurs soumissions liées) — remet le jeu à zéro complet.
+export async function resetChallengesAction() {
   try {
     await requireAdmin()
-    // Les scores sont calculés à la volée depuis submissions (voir getLeaderboard),
-    // donc vider submissions suffit à remettre tous les scores à zéro.
+    await sql`TRUNCATE TABLE submissions CASCADE;`
+    await sql`TRUNCATE TABLE challenges CASCADE;`
+    revalidatePath('/admin')
+    revalidatePath('/')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message || "Erreur lors de la suppression des défis." }
+  }
+}
+
+// Remet les scores à zéro sans toucher aux défis : les scores sont calculés à la
+// volée depuis submissions (voir getLeaderboard), donc vider submissions suffit.
+export async function resetScoresAction() {
+  try {
+    await requireAdmin()
     await sql`TRUNCATE TABLE submissions CASCADE;`
     revalidatePath('/admin')
     revalidatePath('/')
     return { success: true }
   } catch (error: any) {
-    return { error: error.message || "Erreur lors de la réinitialisation." }
+    return { error: error.message || "Erreur lors de la réinitialisation des scores." }
   }
 }
 
