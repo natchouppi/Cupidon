@@ -17,11 +17,21 @@ export async function reviewSubmission(input: {
 }) {
   await requireAdmin()
   const { submissionId, decision, note } = input
-  await sql`
+  const rows = await sql`
     UPDATE submissions
     SET status = ${decision}, note = ${note ?? null}, reviewed_at = now()
     WHERE id = ${submissionId} AND status = 'pending'
+    RETURNING challenge_id
   `
+
+  // Un défi "exclusif" disparaît pour tout le monde dès qu'une équipe l'a fait valider.
+  if (decision === 'approved' && rows[0]) {
+    await sql`
+      UPDATE challenges SET active = false
+      WHERE id = ${rows[0].challenge_id} AND exclusive = true
+    `
+  }
+
   revalidatePath('/admin')
   revalidatePath('/')
   return { success: true }
@@ -34,15 +44,17 @@ export async function createChallenge(input: {
   description: string
   points: number
   category?: string | null
+  exclusive?: boolean
 }) {
   await requireAdmin()
   const title = input.title.trim()
   if (!title) return { error: 'Title is required.' }
   const points = Number.isFinite(input.points) ? Math.max(0, Math.round(input.points)) : 0
   const category = input.category?.trim() || null
+  const exclusive = !!input.exclusive
   await sql`
-    INSERT INTO challenges (title, description, points, category)
-    VALUES (${title}, ${input.description.trim() || null}, ${points}, ${category})
+    INSERT INTO challenges (title, description, points, category, exclusive)
+    VALUES (${title}, ${input.description.trim() || null}, ${points}, ${category}, ${exclusive})
   `
   revalidatePath('/admin')
   revalidatePath('/')
@@ -56,19 +68,22 @@ export async function updateChallenge(input: {
   points: number
   active: boolean
   category?: string | null
+  exclusive?: boolean
 }) {
   await requireAdmin()
   const title = input.title.trim()
   if (!title) return { error: 'Title is required.' }
   const points = Number.isFinite(input.points) ? Math.max(0, Math.round(input.points)) : 0
   const category = input.category?.trim() || null
+  const exclusive = !!input.exclusive
   await sql`
     UPDATE challenges
     SET title = ${title},
         description = ${input.description.trim() || null},
         points = ${points},
         active = ${input.active},
-        category = ${category}
+        category = ${category},
+        exclusive = ${exclusive}
     WHERE id = ${input.id}
   `
   revalidatePath('/admin')
@@ -91,14 +106,20 @@ export async function deleteChallenge(id: number) {
 }
 
 export async function importChallengesAction(
-  challenges: { title: string; description: string; points: number; category?: string }[]
+  challenges: {
+    title: string
+    description: string
+    points: number
+    category?: string
+    exclusive?: boolean
+  }[]
 ) {
   try {
     await requireAdmin()
     for (const c of challenges) {
       await sql`
-        INSERT INTO challenges (title, description, points, active, category)
-        VALUES (${c.title}, ${c.description || null}, ${c.points}, true, ${c.category?.trim() || null});
+        INSERT INTO challenges (title, description, points, active, category, exclusive)
+        VALUES (${c.title}, ${c.description || null}, ${c.points}, true, ${c.category?.trim() || null}, ${!!c.exclusive});
       `
     }
     revalidatePath('/admin')

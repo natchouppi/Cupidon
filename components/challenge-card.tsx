@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle2, Clock, XCircle, Send } from 'lucide-react'
+import { CheckCircle2, Clock, XCircle, Send, Zap } from 'lucide-react'
 import type { Challenge, SubmissionStatus } from '@/lib/db'
 import { cn } from '@/lib/utils'
 import { categoryColor } from '@/lib/category-colors'
@@ -50,16 +50,26 @@ export function ChallengeCard({
         </span>
       </div>
 
-      {challenge.category && (
-        <span
-          className="inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
-          style={{
-            backgroundColor: categoryColor(challenge.category).bg,
-            color: categoryColor(challenge.category).text,
-          }}
-        >
-          {challenge.category}
-        </span>
+      {(challenge.category || challenge.exclusive) && (
+        <div className="flex flex-wrap gap-1.5">
+          {challenge.category && (
+            <span
+              className="inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+              style={{
+                backgroundColor: categoryColor(challenge.category).bg,
+                color: categoryColor(challenge.category).text,
+              }}
+            >
+              {challenge.category}
+            </span>
+          )}
+          {challenge.exclusive && (
+            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-pending/15 px-2.5 py-0.5 text-xs font-semibold text-pending">
+              <Zap className="size-3" />
+              Une seule équipe peut le valider
+            </span>
+          )}
+        </div>
       )}
 
       {challenge.description && (

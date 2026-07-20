@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { Zap, Target, Sparkles, Users } from 'lucide-react'
+import { Zap, Target, Sparkles, Users, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   getActiveChallenges,
@@ -17,8 +17,9 @@ export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
   const team = await getCurrentTeam()
+  // Les défis ne sont ni récupérés ni envoyés au client tant que l'équipe n'est pas connectée.
   const [challenges, leaderboard, teamSubs] = await Promise.all([
-    getActiveChallenges(),
+    team ? getActiveChallenges() : Promise.resolve([]),
     getLeaderboard(),
     team ? getTeamSubmissions(team.id) : Promise.resolve([]),
   ])
@@ -59,8 +60,12 @@ export default async function HomePage() {
           <div className="mt-8 flex flex-wrap items-center gap-3">
             {!team && <TeamLoginDialog triggerLabel="Enter your team code" />}
             <div className="flex flex-wrap gap-3">
-              <Stat value={challenges.length} label="Challenges" icon={Target} tone="primary" />
-              <Stat value={totalPoints} label="Points up for grabs" icon={Sparkles} tone="pending" />
+              {team && (
+                <>
+                  <Stat value={challenges.length} label="Challenges" icon={Target} tone="primary" />
+                  <Stat value={totalPoints} label="Points up for grabs" icon={Sparkles} tone="pending" />
+                </>
+              )}
               <Stat value={leaderboard.length} label="Teams" icon={Users} tone="accent" />
             </div>
           </div>
@@ -75,17 +80,33 @@ export default async function HomePage() {
               <Target className="size-5 text-primary" />
               Challenges
             </h2>
-            <span className="text-sm text-muted-foreground">
-              {challenges.length} available
-            </span>
+            {team && (
+              <span className="text-sm text-muted-foreground">
+                {challenges.length} available
+              </span>
+            )}
           </div>
-          <ChallengeList
-            items={challenges.map((challenge) => {
-              const entry = statusByChallenge.get(challenge.id)
-              return { challenge, status: entry?.status ?? null, note: entry?.note ?? null }
-            })}
-            loggedIn={!!team}
-          />
+
+          {team ? (
+            <ChallengeList
+              items={challenges.map((challenge) => {
+                const entry = statusByChallenge.get(challenge.id)
+                return { challenge, status: entry?.status ?? null, note: entry?.note ?? null }
+              })}
+              loggedIn={true}
+            />
+          ) : (
+            <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-border bg-card px-6 py-16 text-center">
+              <Lock className="size-8 text-muted-foreground" />
+              <div>
+                <p className="font-display text-lg font-bold">Connectez-vous pour voir les défis</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Les défis ne sont visibles qu'aux équipes connectées.
+                </p>
+              </div>
+              <TeamLoginDialog triggerLabel="Entrer le code de votre équipe" />
+            </div>
+          )}
         </section>
 
         <aside className="lg:col-span-1">

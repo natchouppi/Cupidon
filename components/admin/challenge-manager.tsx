@@ -114,6 +114,11 @@ export function ChallengeManager({ challenges }: { challenges: Challenge[] }) {
                     {c.category}
                   </span>
                 )}
+                {c.exclusive && (
+                  <span className="rounded-full bg-pending/15 px-2 py-0.5 text-xs font-semibold text-pending">
+                    1 équipe max
+                  </span>
+                )}
               </div>
               <p className="text-sm text-muted-foreground">{c.description}</p>
             </div>
@@ -131,6 +136,7 @@ function NewChallengeDialog() {
   const [description, setDescription] = useState('')
   const [points, setPoints] = useState('10')
   const [category, setCategory] = useState('')
+  const [exclusive, setExclusive] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   function handleSubmit(e: React.FormEvent) {
@@ -141,6 +147,7 @@ function NewChallengeDialog() {
         description,
         points: Number(points) || 0,
         category: category.trim() || undefined,
+        exclusive,
       })
       if (res?.error) {
         toast.error(res.error)
@@ -152,6 +159,7 @@ function NewChallengeDialog() {
       setDescription('')
       setPoints('10')
       setCategory('')
+      setExclusive(false)
     })
   }
 
@@ -201,6 +209,20 @@ function NewChallengeDialog() {
               />
             </div>
           </div>
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={exclusive}
+              onChange={(e) => setExclusive(e.target.checked)}
+              className="mt-0.5 size-4 shrink-0 rounded border-border"
+            />
+            <span>
+              Validable par une seule équipe
+              <span className="block text-xs text-muted-foreground">
+                Dès qu'une équipe le valide, le défi disparaît pour tout le monde.
+              </span>
+            </span>
+          </label>
           <Button type="submit" disabled={isPending}>
             {isPending ? 'Création...' : 'Créer le défi'}
           </Button>
